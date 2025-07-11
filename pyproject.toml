@@ -12,5 +12,5 @@ Repository = "https://github.com/josephxie1/comfyui_vidu_api_node"
 
 #  Used by Comfy Registry https://registry.comfy.org
 [tool.comfy]
-PublisherId = "josephxie1"
+PublisherId = "josephxieabc"
 DisplayName = "comfyui_VIDU_API"
