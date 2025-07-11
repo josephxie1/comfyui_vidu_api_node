@@ -61,7 +61,8 @@
 
 
 ##  节点说明
-<img width="1275" height="1489" alt="image" src="https://github.com/user-attachments/assets/8e6d466e-a509-41f5-b7c4-af7305f3e943" />
+### 多参考图生视频
+<img width="900" height="1006" alt="image" src="https://github.com/user-attachments/assets/160c7268-cb8c-4518-b520-fca749ff45db" />
 
 
 ## 📝 未来计划
