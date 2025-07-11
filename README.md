@@ -61,6 +61,16 @@
 
 
 ##  节点说明
+### 文生视频
+<img width="2657" height="1329" alt="image" src="https://github.com/user-attachments/assets/237e530a-4e99-4a29-86a4-8bef183126b9" />
+
+https://github.com/user-attachments/assets/e6440404-1b15-48cb-adae-2a5fb026737f
+
+### 图生视频
+<img width="2392" height="1331" alt="image" src="https://github.com/user-attachments/assets/563e0a83-14fe-4c58-bde1-d261d4816591" />
+
+https://github.com/user-attachments/assets/8c09788b-daba-4fbb-998e-18d57eef2504
+
 ### 多参考图生视频
 <img width="900" height="1006" alt="image" src="https://github.com/user-attachments/assets/160c7268-cb8c-4518-b520-fca749ff45db" />
 
