@@ -64,6 +64,13 @@
 ### 多参考图生视频
 <img width="900" height="1006" alt="image" src="https://github.com/user-attachments/assets/160c7268-cb8c-4518-b520-fca749ff45db" />
 
+<img width="3401" height="1979" alt="image" src="https://github.com/user-attachments/assets/95330bae-0a95-437f-b4c0-daac30c4b931" />
+
+https://github.com/user-attachments/assets/23c6181d-9bcb-40e9-9bb4-5075163419bd
+
+
+
+
 
 ## 📝 未来计划
 
