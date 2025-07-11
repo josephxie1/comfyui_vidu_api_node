@@ -9,15 +9,11 @@ from comfy.comfy_types import IO
 from comfy_api.input_impl import VideoFromFile
 
 # ======================================================================================
-# 1. 基础类 (ViduBaseNode)
+# 基础类 (ViduBaseNode)
 # ======================================================================================
 class ViduBaseNode:
     def __init__(self):
-        self.api_base = None
-        self.token = None
-        self.node_name = self.__class__.__name__
-        self._load_api_key()
-
+        self.api_base = None; self.token = None; self.node_name = self.__class__.__name__; self._load_api_key()
     def log(self, message: str): print(f"[Vidu::{self.node_name}] {message}")
     def _load_api_key(self):
         try:
@@ -28,7 +24,6 @@ class ViduBaseNode:
             self.log("API Key 加载成功！")
         except FileNotFoundError: self.log("错误: 未找到 api.json 文件！"); raise FileNotFoundError(f"请在 {os.path.dirname(os.path.abspath(__file__))} 目录下创建 api.json 文件。")
         except json.JSONDecodeError: self.log("错误: api.json 文件格式不正确，无法解析。"); raise ValueError("api.json 文件不是一个有效的JSON。")
-
     def _make_request(self, method: str, endpoint: str, data: dict = None):
         if not self.token: self._load_api_key()
         if not self.api_base: raise ValueError("API 地址 (api_base) 未在节点中配置")
@@ -41,7 +36,6 @@ class ViduBaseNode:
             if response.status_code != 200: self.log(f"API请求失败: {response.text}"); raise Exception(f"API请求失败 (状态码 {response.status_code}): {response.text}")
             return response.json()
         except requests.RequestException as e: self.log(f"网络请求异常: {e}"); raise Exception(f"网络请求失败: {e}")
-
     def _upload_image(self, image_tensor) -> str:
         self.log("开始上传图片..."); self.log("步骤 1/3: 请求上传许可...")
         upload_request_data = self._make_request("POST", "/tools/v2/files/uploads", {"scene": "vidu"})
@@ -59,7 +53,6 @@ class ViduBaseNode:
         image_uri = finish_response.get("uri")
         if not image_uri: raise Exception("完成上传后未能获取到图片URI")
         self.log(f"图片上传完成, 获取到URI: {image_uri}"); return image_uri
-
     def _cancel_task(self, task_id: str):
         self.log(f"正在尝试向Vidu API发送取消请求, 任务ID: {task_id}")
         try:
@@ -69,7 +62,6 @@ class ViduBaseNode:
             if response.status_code == 200: self.log(f"✅ 任务 {task_id} 取消请求已成功发送。")
             else: self.log(f"⚠️ 发送取消请求失败 (这可能是因为任务已完成或无法取消): {response.text}")
         except Exception as e: self.log(f"⚠️ 发送取消请求时发生网络错误: {e}")
-        
     def _wait_for_completion(self, task_id: str, timeout: int = 3600) -> dict:
         try:
             self.log(f"开始轮询任务状态, ID: {task_id}")
@@ -85,7 +77,6 @@ class ViduBaseNode:
             raise TimeoutError(f"任务轮询超时（超过 {timeout} 秒）")
         except KeyboardInterrupt:
             self.log("!!! 接收到用户中断信号 !!!"); self._cancel_task(task_id); raise
-
     def _download_video(self, video_url: str, output_path: str, file_prefix: str) -> str:
         if not video_url or not video_url.startswith('http'): raise ValueError(f"无效的video_url: {video_url}")
         self.log(f"开始下载视频: {video_url}"); os.makedirs(output_path, exist_ok=True)
@@ -104,11 +95,9 @@ class ViduBaseNode:
 class ViduPromptRecommender(ViduBaseNode):
     @classmethod
     def INPUT_TYPES(cls): return {"required": {"图像": ("IMAGE",), "推荐类型": (["特效和图生视频", "仅特效", "仅图生视频"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}), "数量": ("INT", {"default": 5, "min": 1, "max": 10}), "分辨率": (["360p"],),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = ("STRING",), ("格式化提示词",), "recommend"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
-
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = ("STRING",), ("格式化提示词",), "recommend", "comfyui_VIDU_API"
     def recommend(self, **kwargs):
-        # ...函数体不变...
+        # ... (函数体无变化)
         image, recommend_type_cn, self.api_base, count, resolution = kwargs.get("图像"), kwargs.get("推荐类型"), kwargs.get("API地址"), kwargs.get("数量"), kwargs.get("分辨率")
         try:
             self.log(f"开始推荐提示词, 类型: {recommend_type_cn}")
@@ -133,18 +122,24 @@ class ViduPromptRecommender(ViduBaseNode):
 
 class ViduText2VideoNode(ViduBaseNode):
     @classmethod
-    def INPUT_TYPES(cls): return {"required": {"提示词": ("STRING", {"multiline": True, "default": "宇航员穿着宇航服在雾中行走，令人印象深刻的全景场面。"}), "模型": (["vidu1.5", "viduq1"],), "风格": (["通用", "动漫"],), "时长(秒)": ([4, 5, 8], {"default": 4}), "分辨率": (["360p", "720p", "1080p"], {"default": "720p"}), "宽高比": (["16:9", "9:16", "1:1"],), "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), "动态幅度": (["自动", "小", "中", "大"],), }, "optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Text2Video"}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
+    def INPUT_TYPES(cls): return {"required": {"运行配置": (["viduq1 - 5秒", "vidu1.5 - 4秒", "vidu1.5 - 8秒"],),"提示词": ("STRING", {"multiline": True, "default": "宇航员穿着宇航服在雾中行走，令人印象深刻的全景场面。"}), "风格": (["通用", "动漫"],), "分辨率": (["360p", "720p", "1080p"], {"default": "1080p"}), "宽高比": (["16:9", "9:16", "1:1"],), "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), "动态幅度": (["自动", "小", "中", "大"],), }, "optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Text2Video"}),}}
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate", "comfyui_VIDU_API"
     
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        profile, resolution = kwargs.get("运行配置"), kwargs.get("分辨率")
+        if profile == "viduq1 - 5秒" and resolution != "1080p": return f"错误: 配置 '{profile}' 仅支持 1080p 分辨率。"
+        if profile == "vidu1.5 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        return True
+
     def generate(self, **kwargs):
-        # ...函数体不变...
-        prompt, model, style_cn, duration, resolution, aspect_ratio, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("提示词"), kwargs.get("模型"), kwargs.get("风格"), kwargs.get("时长(秒)"), kwargs.get("分辨率"), kwargs.get("宽高比"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
+        profile, prompt, style_cn, resolution, aspect_ratio, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("运行配置"), kwargs.get("提示词"), kwargs.get("风格"), kwargs.get("分辨率"), kwargs.get("宽高比"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
         try:
-            self.log(f"开始文生视频任务, 模型: {model}, 风格: {style_cn}, 提示词: '{prompt[:50]}...'")
+            model, duration_str = profile.split(' - '); duration = int(duration_str.replace('秒', ''))
+            self.log(f"开始文生视频任务, 模型: {model}, 时长: {duration}s, 风格: {style_cn}, 提示词: '{prompt[:50]}...'")
             style_map, move_map = {"通用": "general", "动漫": "anime"}, {"自动": "auto", "小": "small", "中": "medium", "大": "large"}
             api_style, api_move = style_map.get(style_cn), move_map.get(movement_amplitude_cn)
-            task_data = {"model": model, "style": api_style, "prompt": prompt, "duration": int(duration), "seed": seed, "aspect_ratio": aspect_ratio, "resolution": resolution, "movement_amplitude": api_move}
+            task_data = {"model": model, "style": api_style, "prompt": prompt, "duration": duration, "seed": seed, "aspect_ratio": aspect_ratio, "resolution": resolution, "movement_amplitude": api_move}
             task_id = self._make_request("POST", "/ent/v2/text2video", task_data).get("task_id")
             if not task_id: raise Exception("创建任务后未能从响应中获取task_id")
             final_status = self._wait_for_completion(task_id); creations = final_status.get("creations", [])
@@ -157,18 +152,25 @@ class ViduText2VideoNode(ViduBaseNode):
 
 class ViduImage2VideoNode(ViduBaseNode):
     @classmethod
-    def INPUT_TYPES(cls): return {"required": { "图像": ("IMAGE",), "提示词": ("STRING", {"multiline": True, "default": "宇航员挥手，镜头向上移动。"}), "模型": (["vidu2.0", "vidu1.5", "viduq1"],), "时长(秒)": ([4, 5, 8], {"default": 4}), "分辨率": (["360p", "720p", "1080p"], {"default": "720p"}), "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), "动态幅度": (["自动", "小", "中", "大"],), }, "optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Image2Video"}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
+    def INPUT_TYPES(cls): return {"required": {"运行配置": (["viduq1 - 5秒", "vidu2.0 - 4秒", "vidu2.0 - 8秒", "vidu1.5 - 4秒", "vidu1.5 - 8秒"],),"图像": ("IMAGE",), "提示词": ("STRING", {"multiline": True, "default": "宇航员挥手，镜头向上移动。"}),"分辨率": (["360p", "720p", "1080p"], {"default": "1080p"}), "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), "动态幅度": (["自动", "小", "中", "大"],), }, "optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Image2Video"}),}}
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate", "comfyui_VIDU_API"
     
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        profile, resolution = kwargs.get("运行配置"), kwargs.get("分辨率")
+        if profile == "viduq1 - 5秒" and resolution != "1080p": return f"错误: 配置 '{profile}' 仅支持 1080p 分辨率。"
+        if profile == "vidu2.0 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        if profile == "vidu1.5 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        return True
+
     def generate(self, **kwargs):
-        # ...函数体不变...
-        image, prompt, model, duration, resolution, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("图像"), kwargs.get("提示词"), kwargs.get("模型"), kwargs.get("时长(秒)"), kwargs.get("分辨率"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
+        profile, image, prompt, resolution, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("运行配置"), kwargs.get("图像"), kwargs.get("提示词"), kwargs.get("分辨率"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
         try:
-            self.log(f"开始图生视频任务, 模型: {model}, 提示词: '{prompt[:50]}...'")
+            model, duration_str = profile.split(' - '); duration = int(duration_str.replace('秒', ''))
+            self.log(f"开始图生视频任务, 模型: {model}, 时长: {duration}s, 提示词: '{prompt[:50]}...'")
             move_map = {"自动": "auto", "小": "small", "中": "medium", "大": "large"}; api_move = move_map.get(movement_amplitude_cn)
             image_uri = self._upload_image(image)
-            task_data = {"model": model, "images": [image_uri], "prompt": prompt, "duration": int(duration), "seed": seed, "resolution": resolution, "movement_amplitude": api_move}
+            task_data = {"model": model, "images": [image_uri], "prompt": prompt, "duration": duration, "seed": seed, "resolution": resolution, "movement_amplitude": api_move}
             task_id = self._make_request("POST", "/ent/v2/img2video", task_data).get("task_id")
             if not task_id: raise Exception("创建任务后未能从响应中获取task_id")
             final_status = self._wait_for_completion(task_id); creations = final_status.get("creations", [])
@@ -181,23 +183,33 @@ class ViduImage2VideoNode(ViduBaseNode):
 
 class ViduReference2VideoNode(ViduBaseNode):
     @classmethod
-    def INPUT_TYPES(cls): return {"required": {"参考图_1": ("IMAGE",),"提示词": ("STRING", {"multiline": True, "default": "一个可爱的角色在奔跑。"}),"模型": (["vidu2.0", "vidu1.5", "viduq1"],),"时长(秒)": ([4, 5, 8], {"default": 4}),"分辨率": (["360p", "720p", "1080p"], {"default": "720p"}),"宽高比": (["16:9", "9:16", "1:1"],),"随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),"动态幅度": (["自动", "小", "中", "大"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}),"参考图_2": ("IMAGE",), "参考图_3": ("IMAGE",), "参考图_4": ("IMAGE",),"参考图_5": ("IMAGE",), "参考图_6": ("IMAGE",), "参考图_7": ("IMAGE",), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Reference2Video"}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
+    def INPUT_TYPES(cls): return {"required": {"运行配置": (["viduq1 - 5秒", "vidu2.0 - 4秒", "vidu1.5 - 4秒", "vidu1.5 - 8秒"],), "参考图_1": ("IMAGE",),"提示词": ("STRING", {"multiline": True, "default": "一个可爱的角色在奔跑。"}),"分辨率": (["360p", "720p", "1080p"], {"default": "1080p"}),"宽高比": (["16:9", "9:16", "1:1"],),"随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),"动态幅度": (["自动", "小", "中", "大"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}),"参考图_2": ("IMAGE",), "参考图_3": ("IMAGE",), "参考图_4": ("IMAGE",),"参考图_5": ("IMAGE",), "参考图_6": ("IMAGE",), "参考图_7": ("IMAGE",), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Reference2Video"}),}}
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate", "comfyui_VIDU_API"
     
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        profile, resolution = kwargs.get("运行配置"), kwargs.get("分辨率")
+        if profile == "viduq1 - 5秒" and resolution != "1080p": return f"错误: 配置 '{profile}' 仅支持 1080p 分辨率。"
+        if profile == "vidu2.0 - 4秒" and resolution not in ["360p", "720p"]: return f"错误: 配置 '{profile}' 仅支持 360p 或 720p 分辨率。"
+        if profile == "vidu1.5 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        # 注意: 'vidu1.5 - 4秒' 支持所有分辨率, 无需校验
+        return True
+
     def generate(self, **kwargs):
-        # ...函数体不变...
         all_images_cn = [kwargs.get(f"参考图_{i+1}") for i in range(7)]
-        prompt, model, duration, resolution, aspect_ratio, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("提示词"), kwargs.get("模型"), kwargs.get("时长(秒)"), kwargs.get("分辨率"), kwargs.get("宽高比"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
+        profile, prompt, resolution, aspect_ratio, seed, movement_amplitude_cn, self.api_base, output_path, file_prefix = kwargs.get("运行配置"), kwargs.get("提示词"), kwargs.get("分辨率"), kwargs.get("宽高比"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
         try:
-            self.log(f"开始参考生视频任务, 模型: {model}, 提示词: '{prompt[:50]}...'")
+            model, duration_str = profile.split(' - '); duration = int(duration_str.replace('秒', ''))
+            # 虽然我们按文档加入了viduq1, 但根据之前的经验, 仍可能被API拒绝。
+            if model == "viduq1": self.log("警告: 'viduq1' 模型根据之前测试可能不被此接口支持, 如遇错误请更换模型。")
+            self.log(f"开始参考生视频任务, 模型: {model}, 时长: {duration}s, 提示词: '{prompt[:50]}...'")
             move_map = {"自动": "auto", "小": "small", "中": "medium", "大": "large"}; api_move = move_map.get(movement_amplitude_cn)
             image_uris = []
             for i, image_tensor in enumerate(all_images_cn):
                 if image_tensor is not None: self.log(f"上传第 {i+1} 张参考图..."); uri = self._upload_image(image_tensor); image_uris.append(uri)
             if not image_uris: raise ValueError("必须至少提供一张参考图片。")
             self.log(f"总共上传了 {len(image_uris)} 张图片。")
-            task_data = {"model": model, "images": image_uris, "prompt": prompt, "duration": int(duration), "seed": seed, "aspect_ratio": aspect_ratio, "resolution": resolution, "movement_amplitude": api_move}
+            task_data = {"model": model, "images": image_uris, "prompt": prompt, "duration": duration, "seed": seed, "aspect_ratio": aspect_ratio, "resolution": resolution, "movement_amplitude": api_move}
             task_id = self._make_request("POST", "/ent/v2/reference2video", task_data).get("task_id")
             if not task_id: raise Exception("创建任务后未能从响应中获取task_id")
             final_status = self._wait_for_completion(task_id); creations = final_status.get("creations", [])
@@ -210,19 +222,27 @@ class ViduReference2VideoNode(ViduBaseNode):
 
 class ViduStartEnd2VideoNode(ViduBaseNode):
     @classmethod
-    def INPUT_TYPES(cls): return {"required": {"起始帧": ("IMAGE",),"结束帧": ("IMAGE",),"模型": (["vidu2.0", "vidu1.5", "viduq1", "viduq1-classic"],),"时长(秒)": ([4, 5, 8], {"default": 4}),"分辨率": (["360p", "720p", "1080p"], {"default": "720p"}),"随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),"动态幅度": (["自动", "小", "中", "大"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}),"提示词": ("STRING", {"multiline": True, "default": ""}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_StartEnd2Video"}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
+    def INPUT_TYPES(cls): return {"required": {"运行配置": (["viduq1 - 5秒", "viduq1-classic - 5秒", "vidu2.0 - 4秒", "vidu2.0 - 8秒", "vidu1.5 - 4秒", "vidu1.5 - 8秒"],), "起始帧": ("IMAGE",),"结束帧": ("IMAGE",),"分辨率": (["360p", "720p", "1080p"], {"default": "1080p"}),"随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),"动态幅度": (["自动", "小", "中", "大"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}),"提示词": ("STRING", {"multiline": True, "default": ""}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_StartEnd2Video"}),}}
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate", "comfyui_VIDU_API"
     
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        profile, resolution = kwargs.get("运行配置"), kwargs.get("分辨率")
+        if profile in ["viduq1 - 5秒", "viduq1-classic - 5秒"] and resolution != "1080p": return f"错误: 配置 '{profile}' 仅支持 1080p 分辨率。"
+        if profile == "vidu2.0 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        if profile == "vidu1.5 - 8秒" and resolution != "720p": return f"错误: 配置 '{profile}' 仅支持 720p 分辨率。"
+        return True
+
     def generate(self, **kwargs):
-        # ...函数体不变...
-        start_frame, end_frame, model, duration, resolution, seed, movement_amplitude_cn, self.api_base, prompt, output_path, file_prefix = kwargs.get("起始帧"), kwargs.get("结束帧"), kwargs.get("模型"), kwargs.get("时长(秒)"), kwargs.get("分辨率"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("提示词"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
+        # ... (函数体无变化) ...
+        profile, start_frame, end_frame, resolution, seed, movement_amplitude_cn, self.api_base, prompt, output_path, file_prefix = kwargs.get("运行配置"), kwargs.get("起始帧"), kwargs.get("结束帧"), kwargs.get("分辨率"), kwargs.get("随机种子"), kwargs.get("动态幅度"), kwargs.get("API地址"), kwargs.get("提示词"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
         try:
-            self.log(f"开始首尾帧生视频任务, 模型: {model}"); self.log("注意: 请确保首尾帧图像的分辨率比例在0.8到1.25之间。")
+            model, duration_str = profile.split(' - '); duration = int(duration_str.replace('秒', ''))
+            self.log(f"开始首尾帧生视频任务, 模型: {model}, 时长: {duration}s"); self.log("注意: 请确保首尾帧图像的分辨率比例在0.8到1.25之间。")
             move_map = {"自动": "auto", "小": "small", "中": "medium", "大": "large"}; api_move = move_map.get(movement_amplitude_cn)
             self.log("上传起始帧图像..."); start_uri = self._upload_image(start_frame)
             self.log("上传结束帧图像..."); end_uri = self._upload_image(end_frame)
-            task_data = {"model": model, "images": [start_uri, end_uri], "duration": int(duration), "seed": seed, "resolution": resolution, "movement_amplitude": api_move}
+            task_data = {"model": model, "images": [start_uri, end_uri], "duration": duration, "seed": seed, "resolution": resolution, "movement_amplitude": api_move}
             if prompt and prompt.strip(): task_data["prompt"] = prompt
             task_id = self._make_request("POST", "/ent/v2/start-end2video", task_data).get("task_id")
             if not task_id: raise Exception("创建任务后未能从响应中获取task_id")
@@ -237,11 +257,9 @@ class ViduStartEnd2VideoNode(ViduBaseNode):
 class ViduFeaturedPresetNode(ViduBaseNode):
     @classmethod
     def INPUT_TYPES(cls): return {"required": {"预设模板": (["outfit_show"],),},"optional": {"API地址": ("STRING", {"multiline": False, "default": "https://api.vidu.cn"}),"提示词": ("STRING", {"multiline": True}),"图像_1": ("IMAGE",),"图像_2": ("IMAGE",),"背景音乐": ("BOOLEAN", {"default": True}),"随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),"额外JSON参数": ("STRING", {"multiline": True, "default": "{}"}), "输出路径": ("STRING", {"default": "output"}), "文件名前缀": ("STRING", {"default": "Vidu_Preset"}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate"
-    CATEGORY = "comfyui_VIDU_API" # <--- 已修改
-    
+    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = (IO.VIDEO, "STRING", "STRING"), ("video", "封面链接", "任务ID"), "generate", "comfyui_VIDU_API"
     def generate(self, **kwargs):
-        # ...函数体不变...
+        # ... (函数体无变化) ...
         template_name, self.api_base, prompt, image_1, image_2, bgm, seed, extra_params_json, output_path, file_prefix = kwargs.get("预设模板"), kwargs.get("API地址"), kwargs.get("提示词"), kwargs.get("图像_1"), kwargs.get("图像_2"), kwargs.get("背景音乐"), kwargs.get("随机种子"), kwargs.get("额外JSON参数"), kwargs.get("输出路径"), kwargs.get("文件名前缀")
         try:
             self.log(f"开始特色预设任务, 模板: {template_name}")
