@@ -1,0 +1,16 @@
+[project]
+name = "comfyui_vidu_api_node"
+description = "A ComfyUI node suite for Vidu API, enabling Text-to-Video, Image-to-Video, and more"
+version = "1.0.0"
+license = { file = "LICENSE" } 
+dependencies = [
+    "requests"
+]
+
+[project.urls]
+Repository = "https://github.com/josephxie1/comfyui_vidu_api_node"
+
+#  Used by Comfy Registry https://registry.comfy.org
+[tool.comfy]
+PublisherId = "josephxie1"
+DisplayName = "comfyui_VIDU_API"
