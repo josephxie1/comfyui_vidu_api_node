@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_vidu_api_node"
 description = "A ComfyUI node suite for Vidu API, enabling Text-to-Video, Image-to-Video, and more"
-version = "1.0.0"
+version = "1.0.1"
 license = { file = "LICENSE" } 
 dependencies = [
     "requests"
