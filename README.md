@@ -36,6 +36,11 @@
 
 ---
 
+## 🚀 通过ComfyUI Manager安装
+
+<img width="5120" height="2739" alt="image" src="https://github.com/user-attachments/assets/ca0be3b5-5258-4915-9f40-5dae22af9be8" />
+
+
 ## 🔑 配置 API Key
 
 为了您的账户安全，API Key 需要通过配置文件来加载。
