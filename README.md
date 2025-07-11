@@ -30,12 +30,9 @@
     git clone [https://github.com/your_github_username/comfyui_VIDU_API.git](https://github.com/your_github_username/comfyui_VIDU_API.git)
     ```
     *(请将 `https://github.com/your_github_username/comfyui_VIDU_API.git` 替换为您自己的仓库地址)*
-4.  安装所需的依赖库：
-    ```bash
-    cd comfyui_VIDU_API
-    pip install -r requirements.txt
-    ```
-5.  **完全重启 ComfyUI**。
+
+  
+4.  **完全重启 ComfyUI**。
 
 ---
 
@@ -61,6 +58,10 @@
 ## 📖 使用示例
 ### 示例一：基础的图生视频
 <img width="1665" height="615" alt="image" src="https://github.com/user-attachments/assets/f21270bf-07e8-42f3-9e37-801ecac4a8ff" />
+
+
+##  节点说明
+<img width="1275" height="1489" alt="image" src="https://github.com/user-attachments/assets/8e6d466e-a509-41f5-b7c4-af7305f3e943" />
 
 
 ## 📝 未来计划
